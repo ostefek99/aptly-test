@@ -30,14 +30,14 @@ jobs:
       BOTO_CONFIG: /dev/null
       GO111MODULE: "on"
       GOPROXY: "https://proxy.golang.org"
-      GOVER: '1.21'
+      GOVER: '1.22'
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GOVER }}
 
@@ -47,9 +47,9 @@ jobs:
            go generate
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install O/S packages
         run: |
@@ -64,7 +64,7 @@ jobs:
 
       - name: Install Azurite
         id: azuright
-        uses: potatoqualitee/azuright@v1.1
+        uses: potatoqualitee/azuright@v1
         with:
           directory: ${{ runner.temp }}
 
@@ -82,11 +82,11 @@ jobs:
           go install github.com/wadey/gocovmerge@latest
           ~/go/bin/gocovmerge unit.out ${{ runner.temp }}/*.out > coverage.txt
 
-      - name: Upload code coverage
-        uses: codecov/codecov-action@v2
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.txt
+      #- name: Upload code coverage
+      #  uses: codecov/codecov-action@v2
+      #  with:
+      #    token: ${{ secrets.CODECOV_TOKEN }}
+      #    files: coverage.txt
 
   release:
     needs: build
@@ -94,30 +94,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        name: [Ubuntu-20, Ubuntu-22, Debian-10, Debian-11, Debian-12]
+        name: [Ubuntu-22]
         include:
-          - name: Ubuntu-20
-            image: "ubuntu:20.04"
-            suite: focal
-            GOVER: '1.21'
-            install: "make ca-certificates git curl"
           - name: Ubuntu-22
             image: "ubuntu:22.04"
             suite: jammy
-            install: "make ca-certificates git curl golang"
-          - name: Debian-10
-            image: "debian:buster"
-            suite: buster
-            GOVER: '1.21'
-            install: "make ca-certificates git curl"
-          - name: Debian-11
-            image: "debian:bullseye"
-            suite: bullseye
-            GOVER: '1.21'
-            install: "make ca-certificates git curl"
-          - name: Debian-12
-            image: "debian:bookworm"
-            suite: bookworm
+            GOVER: '1.22'
             install: "make ca-certificates git curl golang"
     container:
       image: ${{ matrix.image }}
@@ -133,7 +115,7 @@ jobs:
           echo GOVER: ${{ env.GOVER }}
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # fetch the whole repo for `git describe` to
           # work and get the nightly verion
@@ -141,7 +123,7 @@ jobs:
 
       - name: Setup Go
         if: ${{ matrix.GOVER != '' }}
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.GOVER }}
 
@@ -151,18 +133,18 @@ jobs:
         run: |
           make release
 
-      - name: Publish nightly release to aptly
-        if: github.ref == 'refs/heads/master'
-        env:
-          APTLY_USER: ${{ secrets.APTLY_USER }}
-          APTLY_PASSWORD: ${{ secrets.APTLY_PASSWORD }}
-        run: |
-          ./upload-artifacts.sh nightly ${{ matrix.suite }}
+      #- name: Publish nightly release to aptly
+      #  if: github.ref == 'refs/heads/master'
+      #  env:
+      #    APTLY_USER: ${{ secrets.APTLY_USER }}
+      #    APTLY_PASSWORD: ${{ secrets.APTLY_PASSWORD }}
+      #  run: |
+      #    ./upload-artifacts.sh nightly ${{ matrix.suite }}
 
-      - name: Publish release to aptly
-        if: startsWith(github.event.ref, 'refs/tags')
-        env:
-          APTLY_USER: ${{ secrets.APTLY_USER }}
-          APTLY_PASSWORD: ${{ secrets.APTLY_PASSWORD }}
-        run: |
-          ./upload-artifacts.sh release ${{ matrix.suite }}
+      #- name: Publish release to aptly
+      #  if: startsWith(github.event.ref, 'refs/tags')
+      #  env:
+      #    APTLY_USER: ${{ secrets.APTLY_USER }}
+      #    APTLY_PASSWORD: ${{ secrets.APTLY_PASSWORD }}
+      #  run: |
+      #    ./upload-artifacts.sh release ${{ matrix.suite }}
