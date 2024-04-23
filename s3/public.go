@@ -85,7 +85,6 @@ func NewPublishedStorageRaw(
 			o.HTTPSignerV4 = v4.NewSigner()
 		}),
 		bucket:           bucket,
-		config:           config,
 		acl:              acl,
 		prefix:           prefix,
 		storageClass:     types.StorageClass(storageClass),
